@@ -2,6 +2,7 @@
 #include <chrono>
 #include <thread>
 #include <conio.h> // ใช้ _kbhit() และ _getch() สำหรับตรวจจับการกดปุ่ม (Windows เท่านั้น)
+#include <algorithm> // ใช้สำหรับ sort()
 
 using namespace std;
 using namespace chrono;
@@ -52,12 +53,29 @@ int main() {
         cout << "Elapsed time for Player " << i + 1 << ": " << times[i] << " seconds.\n";
     }
 
-    // แสดงผลลัพธ์ทั้งหมดหลังจากครบ 4 รอบ
-    cout << "\n=== Summary of all players ===\n";
+    // จัดอันดับผู้เล่นตามเวลาที่ใช้ (จากน้อยไปมาก)
+    int rankedPlayers[players]; // อาเรย์สำหรับจัดเก็บอันดับ
     for (int i = 0; i < players; i++) {
-        cout << "Player " << i + 1 << ": " << times[i] << " seconds\n";
+        rankedPlayers[i] = times[i];
+    }
+
+    // เรียงลำดับเวลา
+    sort(rankedPlayers, rankedPlayers + players);
+
+    // แสดงผลลัพธ์ทั้งหมดหลังจากครบ 4 รอบ
+    cout << "\n=== Ranking of players ===\n";
+    for (int i = 0; i < players; i++) {
+        // แสดงผลลัพธ์การจัดอันดับ
+        cout << "Rank " << i + 1 << ": Player ";
+        for (int j = 0; j < players; j++) {
+            if (times[j] == rankedPlayers[i]) {
+                cout << j + 1 << " with time: " << rankedPlayers[i] << " seconds" << endl;
+                break;
+            }
+        }
     }
 
     return 0;
 }
+
 
