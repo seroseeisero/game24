@@ -7,12 +7,23 @@ using namespace std;
 using namespace chrono;
 
 int main() {
-    const int rounds = 4;  // จำนวนรอบ
+    int players; // จำนวนผู้เล่น
     const int maxTime = 120; // จำกัดเวลาแต่ละรอบ 120 วินาที
-    int times[rounds]; // เก็บเวลาที่ใช้ในแต่ละรอบ
 
-    for (int i = 0; i < rounds; i++) {
-        cout << "\nRound " << i + 1 << ": Press Enter to start the timer..." << endl;
+    // ให้ผู้เล่นเลือกจำนวนผู้เล่น
+    cout << "Enter number of players (2-4): ";
+    cin >> players;
+
+    // ตรวจสอบจำนวนผู้เล่นที่ถูกต้อง
+    if (players < 2 || players > 4) {
+        cout << "Invalid number of players. Please enter a number between 2 and 4." << endl;
+        return 1; // ออกจากโปรแกรมหากจำนวนผู้เล่นไม่ถูกต้อง
+    }
+
+    int times[players]; // เก็บเวลาที่ใช้ในแต่ละรอบ
+
+    for (int i = 0; i < players; i++) {
+        cout << "\nPlayer " << i + 1 << ", Round 1: Press Enter to start the timer..." << endl;
         
         while (true) {
             if (_kbhit() && _getch() == '\r') { // ตรวจจับการกด Enter
@@ -38,14 +49,15 @@ int main() {
             }
         }
 
-        cout << "Elapsed time for round " << i + 1 << ": " << times[i] << " seconds.\n";
+        cout << "Elapsed time for Player " << i + 1 << ": " << times[i] << " seconds.\n";
     }
 
     // แสดงผลลัพธ์ทั้งหมดหลังจากครบ 4 รอบ
-    cout << "\n=== Summary of all rounds ===\n";
-    for (int i = 0; i < rounds; i++) {
-        cout << "Round " << i + 1 << ": " << times[i] << " seconds\n";
+    cout << "\n=== Summary of all players ===\n";
+    for (int i = 0; i < players; i++) {
+        cout << "Player " << i + 1 << ": " << times[i] << " seconds\n";
     }
 
     return 0;
 }
+
