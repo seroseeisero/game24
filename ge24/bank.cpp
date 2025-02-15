@@ -30,22 +30,22 @@ int main() {
     }
 
     for (int i = 0; i < players; i++) {
-        cout << "\n" << playerNames[i] << ", Round 1: Press Enter to start the timer..." << endl;
+        cout << "\n" << playerNames[i] << ", Round 1: Press Spacebar to start the timer..." << endl;
         
         while (true) {
-            if (_kbhit() && _getch() == '\r') {
+            if (_kbhit() && _getch() == 32) {  // 32 คือค่า ASCII ของ Spacebar
                 break;
             }
         }
 
         auto start = high_resolution_clock::now();
-        cout << "Timer started. Press Enter again to stop the timer (or it will stop at 120 seconds)..." << endl;
+        cout << "Timer started. Press Spacebar again to stop the timer (or it will stop at 120 seconds)..." << endl;
 
         while (true) {
             auto now = high_resolution_clock::now();
             auto elapsed = duration_cast<seconds>(now - start).count();
 
-            if (_kbhit() && _getch() == '\r') {
+            if (_kbhit() && _getch() == 32) {  // 32 คือค่า ASCII ของ Spacebar
                 times[i] = elapsed;
                 break;
             }
