@@ -145,9 +145,9 @@ void playTimerGame(vector<Player> &players, int targetNumber) {
         players[i].time = times[i];
 
         if (answer == "correct") { 
-            cout << "✅ Correct answer!" << endl;
+            cout << "Correct answer!" << endl;
         } else {
-            cout << "❌ Wrong answer!" << endl;
+            cout << "Wrong answer!" << endl;
         }
         cout << "Elapsed time for " << players[i].name << ": " << times[i] << " sec.\n";
     }
