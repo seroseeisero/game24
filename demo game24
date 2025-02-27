@@ -1,0 +1,197 @@
+#include <iostream>
+#include <chrono>
+#include <thread>
+#include <conio.h>
+#include <algorithm>
+#include <vector>
+#include <random>
+#include <string>
+#include <cmath>
+
+using namespace std;
+using namespace chrono;
+
+//---------------คลาสผู้เล่น---------------------
+class Player {
+public:
+    string name;
+    double number;
+    double score;
+    float time;
+
+    Player(string playerName) {
+        name = playerName;
+        time = 0;
+        score = 0;
+    }
+
+    void displayInfo() {
+        cout << "Player: " << name << ", Time: " << time << endl;
+    }
+};
+
+class Game {
+public:
+    vector <Player> players;
+
+    Game(int numPlayers) {  
+        for (int i = 0; i < numPlayers; ++i) {
+            string playerName;
+            cout << "Enter name for Player " << (i + 1) << ": ";
+            cin >> playerName;
+            players.push_back(Player(playerName));
+        }
+    }
+
+    void startGame() {
+        cout << "\nGame Started!" << endl;
+    }
+};
+
+//------------ตรวจคำตอบ--------
+double applyOperation(double a, double b, char op) {
+    switch (op) {
+        case '+': return a + b;
+        case '-': return a - b;
+        case '*': return a * b;
+        case '/': return (b != 0) ? a / b : 1e9;
+        default: return 1e9;
+    }
+}
+
+bool checkSolution(vector<double> nums, vector<char> ops, double target) {
+    do {
+        do {
+            double result1 = applyOperation(nums[0], nums[1], ops[0]);
+            double result2 = applyOperation(result1, nums[2], ops[1]);
+            double result3 = applyOperation(result2, nums[3], ops[2]);
+
+            if (abs(result3 - target) < 1e-6) {
+                return true;
+            }
+        } while (next_permutation(ops.begin(), ops.end()));
+    } while (next_permutation(nums.begin(), nums.end()));
+
+    return false;
+}
+
+//-------------สุ่มเลข----------------
+int generateInitialNumber() {
+    return rand() % 7 + 24;
+}
+
+void generateComponentNumbers(int targetNumber) {
+    vector<int> components;
+    int sum = 0;
+
+    for (int i = 0; i < 3; i++) {
+        int max_value = min(15, targetNumber - sum - 1);
+        if (max_value < 1) max_value = 1;
+
+        int num = rand() % max_value + 1;
+        components.push_back(num);
+        sum += num;
+    }
+
+    int lastNumber = targetNumber - sum;
+
+    if (lastNumber < 1 || lastNumber > 15) {
+        components.clear();
+        int first = min(15, targetNumber / 2);
+        components.push_back(first);
+        int second = min(15, abs(targetNumber - first));
+        components.push_back(second);
+        components.push_back(rand() % 5 + 1);
+        components.push_back(rand() % 5 + 1);
+    } else {
+        components.push_back(lastNumber);
+    }
+
+    random_device rd;
+    mt19937 g(rd());
+    shuffle(components.begin(), components.end(), g);
+
+    for (int num : components) {
+        cout << num << " ";
+    }
+    cout << endl;
+
+    cout << "Hint (one possible solution): Try using addition, subtraction, multiplication, or division" << endl;
+}
+
+//--------------จับเวลา---------
+void playTimerGame(vector<Player> &players, int targetNumber) {
+    const int maxTime = 120;
+    vector<int> times(players.size());
+
+    for (int i = 0; i < players.size(); i++) {
+        cout << "\n" << players[i].name << ", press Spacebar to start the timer..." << endl;
+
+        while (true) {
+            if (_kbhit() && _getch() == 32) {
+                break;
+            }
+        }
+
+        auto start = high_resolution_clock::now();
+        cout << "Timer started. Enter your answer (e.g., 11 + 3 + 6 + 10): ";
+        string answer;
+        cin.ignore();
+        getline(cin, answer);
+
+        auto stop = high_resolution_clock::now();
+        auto elapsed = duration_cast<seconds>(stop - start).count();
+        times[i] = elapsed;
+        players[i].time = times[i];
+
+        if (answer == "correct") { 
+            cout << "✅ Correct answer!" << endl;
+        } else {
+            cout << "❌ Wrong answer!" << endl;
+        }
+        cout << "Elapsed time for " << players[i].name << ": " << times[i] << " sec.\n";
+    }
+
+    sort(players.begin(), players.end(), [](const Player &a, const Player &b) {
+        return a.time < b.time;
+    });
+
+    cout << "\n=== Ranking of players ===\n";
+    for (int i = 0; i < players.size(); i++) {
+        cout << "Rank " << i + 1 << ": " << players[i].name << " - " << players[i].time << " sec" << endl;
+    }
+    cout << "\nWinner is: " << players[0].name << " with " << players[0].time << " sec!" << endl;
+}
+
+//-------------ฟังก์ชันหลัก-------------------
+
+int main() {
+    srand(time(0));
+    string ready;
+    cout << " --  --*--ARE--*--  --" << endl;
+    cout << " --  --*--YOU--*--  --  " << endl;
+    cout << "--- --*--READY--*-- ---    " << endl;
+    cout << "READY??? :";
+    cin >> ready;
+
+    int numPlayers;
+    cout << "Enter number of players (1-4): ";
+    cin >> numPlayers;
+
+    if (numPlayers < 1 || numPlayers > 4) {
+        cout << "Invalid number of players. Please enter a number between 1 and 4." << endl;
+        return 1;
+    }
+
+    Game game(numPlayers);
+    game.startGame();
+
+    int initialNumber = generateInitialNumber();
+    cout << "Initial Number: " << initialNumber << endl;
+    cout << "Component Numbers: ";
+    generateComponentNumbers(initialNumber);
+
+    playTimerGame(game.players, initialNumber);
+
+    return 0;
+}
