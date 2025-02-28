@@ -1,28 +1,38 @@
 #include <iostream>
+#include <vector>
 #include <chrono>
 #include <thread>
 #include <conio.h>
 #include <algorithm>
-#include <vector>
 #include <random>
 #include <string>
 #include <cmath>
+#include <sstream>
+#include <stack>
+#include <limits>
 
 using namespace std;
-using namespace chrono;
 
-//---------------คลาสผู้เล่น---------------------
+// ✅ ประกาศ Prototype ฟังก์ชันที่จำเป็น
+int generateInitialNumber();
+void generateComponentNumbers(int targetNumber);
+bool checkSolution(const string& expression, double target);
+double evaluateExpression(const string& expression);
+
+//--------------- คลาสผู้เล่น ---------------------
 class Player {
 public:
     string name;
     double number;
     double score;
     float time;
+    bool correctAnswer;
 
     Player(string playerName) {
         name = playerName;
         time = 0;
         score = 0;
+        correctAnswer = false;
     }
 
     void displayInfo() {
@@ -30,9 +40,10 @@ public:
     }
 };
 
+//--------------- คลาสเกม ---------------------
 class Game {
 public:
-    vector <Player> players;
+    vector<Player> players;
 
     Game(int numPlayers) {  
         for (int i = 0; i < numPlayers; ++i) {
@@ -48,34 +59,202 @@ public:
     }
 };
 
-//------------ตรวจคำตอบ--------
+// Function to check if character is an operator
+bool isOperator(char c) {
+    return (c == '+' || c == '-' || c == '*' || c == '/');
+}
+
+// Function to get precedence of operator
+int getPrecedence(char op) {
+    if (op == '+' || op == '-')
+        return 1;
+    if (op == '*' || op == '/')
+        return 2;
+    return 0;
+}
+
+// Function to perform operation
 double applyOperation(double a, double b, char op) {
     switch (op) {
         case '+': return a + b;
         case '-': return a - b;
         case '*': return a * b;
-        case '/': return (b != 0) ? a / b : 1e9;
-        default: return 1e9;
+        case '/': return b != 0 ? a / b : 0; // Avoid division by zero
+    }
+    return 0;
+}
+
+// Function to evaluate expression with parentheses
+double evaluateExpression(const string& expression) {
+    string expr = expression;
+    // Remove all spaces
+    expr.erase(remove(expr.begin(), expr.end(), ' '), expr.end());
+    
+    stack<double> values;
+    stack<char> ops;
+
+    for (int i = 0; i < expr.length(); i++) {
+        // If current character is a whitespace, skip it
+        if (expr[i] == ' ')
+            continue;
+
+        // If current character is a digit or decimal point, push it to values stack
+        if (isdigit(expr[i]) || expr[i] == '.') {
+            string numStr;
+            // Get the entire number
+            while (i < expr.length() && (isdigit(expr[i]) || expr[i] == '.'))
+                numStr += expr[i++];
+            i--; // Move back one position
+            values.push(stod(numStr));
+        }
+        // If current character is opening bracket, push to ops stack
+        else if (expr[i] == '(') {
+            ops.push(expr[i]);
+        }
+        // If current character is closing bracket, solve the bracket
+        else if (expr[i] == ')') {
+            while (!ops.empty() && ops.top() != '(') {
+                double val2 = values.top();
+                values.pop();
+                
+                double val1 = values.top();
+                values.pop();
+                
+                char op = ops.top();
+                ops.pop();
+                
+                values.push(applyOperation(val1, val2, op));
+            }
+            
+            if (!ops.empty())
+                ops.pop(); // Remove the opening bracket
+        }
+        // If current character is an operator
+        else if (isOperator(expr[i])) {
+            while (!ops.empty() && getPrecedence(ops.top()) >= getPrecedence(expr[i])) {
+                if (ops.top() == '(') break;
+                
+                double val2 = values.top();
+                values.pop();
+                
+                double val1 = values.top();
+                values.pop();
+                
+                char op = ops.top();
+                ops.pop();
+                
+                values.push(applyOperation(val1, val2, op));
+            }
+            
+            ops.push(expr[i]);
+        }
+    }
+    
+    // Process remaining operators
+    while (!ops.empty()) {
+        double val2 = values.top();
+        values.pop();
+        
+        double val1 = values.top();
+        values.pop();
+        
+        char op = ops.top();
+        ops.pop();
+        
+        values.push(applyOperation(val1, val2, op));
+    }
+    
+    return values.top();
+}
+
+// Function to check if the expression evaluates to the target number
+bool checkSolution(const string& expression, double target) {
+    try {
+        double result = evaluateExpression(expression);
+        return abs(result - target) < 1e-6;
+    } catch (...) {
+        return false;
     }
 }
 
-bool checkSolution(vector<double> nums, vector<char> ops, double target) {
-    do {
-        do {
-            double result1 = applyOperation(nums[0], nums[1], ops[0]);
-            double result2 = applyOperation(result1, nums[2], ops[1]);
-            double result3 = applyOperation(result2, nums[3], ops[2]);
+// ✅ playTimerGame() อยู่หลัง checkSolution()
+void playTimerGame(vector<Player> &players, int targetNumber) {
+    const int maxTime = 120;
 
-            if (abs(result3 - target) < 1e-6) {
-                return true;
+    // Clear input buffer before starting
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+    for (int i = 0; i < players.size(); i++) {
+        cout << "\n" << players[i].name << ", press Spacebar to start the timer..." << endl;
+
+        while (true) {
+            if (_kbhit() && _getch() == 32) {
+                break;
             }
-        } while (next_permutation(ops.begin(), ops.end()));
-    } while (next_permutation(nums.begin(), nums.end()));
+        }
 
-    return false;
+        auto start = chrono::high_resolution_clock::now();
+        cout << "Timer started. Enter your answer (e.g., 5+1+6+15 or (5+1)*(6-2)): ";
+
+        string input;
+        getline(cin, input);
+
+        auto stop = chrono::high_resolution_clock::now();
+        auto elapsed = chrono::duration_cast<chrono::seconds>(stop - start).count();
+        players[i].time = elapsed;
+
+        players[i].correctAnswer = checkSolution(input, targetNumber);
+        if (players[i].correctAnswer) {
+            cout << "!Correct answer!" << endl;
+        } else {
+            cout << "!Wrong answer!" << endl;
+        }
+        cout << "Elapsed time for " << players[i].name << ": " << players[i].time << " sec.\n";
+    }
+
+    // First group: correct answers sorted by time
+    vector<Player> correctPlayers;
+    vector<Player> wrongPlayers;
+    
+    for (const auto& player : players) {
+        if (player.correctAnswer) {
+            correctPlayers.push_back(player);
+        } else {
+            wrongPlayers.push_back(player);
+        }
+    }
+    
+    // Sort both groups by time
+    sort(correctPlayers.begin(), correctPlayers.end(), [](const Player &a, const Player &b) {
+        return a.time < b.time;
+    });
+    
+    sort(wrongPlayers.begin(), wrongPlayers.end(), [](const Player &a, const Player &b) {
+        return a.time < b.time;
+    });
+    
+    // Combine the groups: correct players first, then incorrect players
+    vector<Player> rankedPlayers;
+    rankedPlayers.insert(rankedPlayers.end(), correctPlayers.begin(), correctPlayers.end());
+    rankedPlayers.insert(rankedPlayers.end(), wrongPlayers.begin(), wrongPlayers.end());
+
+    cout << "\n=== Ranking of players ===\n";
+    for (int i = 0; i < rankedPlayers.size(); i++) {
+        cout << "Rank " << i + 1 << ": " << rankedPlayers[i].name << " - " << rankedPlayers[i].time << " sec";
+        if (!rankedPlayers[i].correctAnswer) {
+            cout << " (Wrong answer)";
+        }
+        cout << endl;
+    }
+    
+    if (!correctPlayers.empty()) {
+        cout << "\nWinner is: " << correctPlayers[0].name << " with " << correctPlayers[0].time << " sec!" << endl;
+    } else {
+        cout << "\nNo winner - all players gave incorrect answers!" << endl;
+    }
 }
 
-//-------------สุ่มเลข----------------
+// ✅ ฟังก์ชันที่ใช้สุ่มตัวเลข
 int generateInitialNumber() {
     return rand() % 7 + 24;
 }
@@ -116,61 +295,19 @@ void generateComponentNumbers(int targetNumber) {
     }
     cout << endl;
 
-    cout << "Hint (one possible solution): Try using addition, subtraction, multiplication, or division" << endl;
+    cout << "Hint (one possible solution): Try using addition, subtraction, multiplication, or division with parentheses" << endl;
 }
 
-//--------------จับเวลา---------
-void playTimerGame(vector<Player> &players, int targetNumber) {
-    const int maxTime = 120;
-    vector<int> times(players.size());
-
-    for (int i = 0; i < players.size(); i++) {
-        cout << "\n" << players[i].name << ", press Spacebar to start the timer..." << endl;
-
-        while (true) {
-            if (_kbhit() && _getch() == 32) {
-                break;
-            }
-        }
-
-        auto start = high_resolution_clock::now();
-        cout << "Timer started. Enter your answer (e.g., 11 + 3 + 6 + 10): ";
-        string answer;
-        cin.ignore();
-        getline(cin, answer);
-
-        auto stop = high_resolution_clock::now();
-        auto elapsed = duration_cast<seconds>(stop - start).count();
-        times[i] = elapsed;
-        players[i].time = times[i];
-
-        if (answer == "correct") { 
-            cout << "Correct answer!" << endl;
-        } else {
-            cout << "Wrong answer!" << endl;
-        }
-        cout << "Elapsed time for " << players[i].name << ": " << times[i] << " sec.\n";
-    }
-
-    sort(players.begin(), players.end(), [](const Player &a, const Player &b) {
-        return a.time < b.time;
-    });
-
-    cout << "\n=== Ranking of players ===\n";
-    for (int i = 0; i < players.size(); i++) {
-        cout << "Rank " << i + 1 << ": " << players[i].name << " - " << players[i].time << " sec" << endl;
-    }
-    cout << "\nWinner is: " << players[0].name << " with " << players[0].time << " sec!" << endl;
-}
-
-//-------------ฟังก์ชันหลัก-------------------
-
+// ✅ main() อยู่ล่างสุด
 int main() {
     srand(time(0));
-    string ready;
-    cout << " --  --*--ARE--*--  --" << endl;
-    cout << " --  --*--YOU--*--  --  " << endl;
-    cout << "--- --*--READY--*-- ---    " << endl;
+
+    // 🎬 แสดง Intro ก่อนเริ่มเกม
+    cout << "\n--  --*--ARE--*--  --" << endl;
+    cout << " --  --*--YOU--*--  --" << endl;
+    cout << "--- --*--READY--*-- ---" << endl;
+
+    char ready;
     cout << "READY??? :";
     cin >> ready;
 
