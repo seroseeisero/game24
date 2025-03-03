@@ -307,9 +307,15 @@ int main() {
     cout << " --  --*--YOU--*--  --" << endl;
     cout << "--- --*--READY--*-- ---" << endl;
 
-    char ready;
+    string ready;
     cout << "READY??? :";
     cin >> ready;
+
+    // ตรวจสอบว่าผู้ใช้พิมพ์ "yes" เท่านั้น
+    if (ready != "yes") {
+        cout << "Please type 'yes' to proceed." << endl;
+        return 1;
+    }
 
     int numPlayers;
     cout << "Enter number of players (1-4): ";
