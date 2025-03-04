@@ -51,7 +51,7 @@ int main() {
     cin >> numPlayers;
 
     if (numPlayers < 1 || numPlayers > 4) {
-        cout << "Invalid number of players. Please enter a number between 1 and 4." << endl;
+        cout << "Invalid number of players. Please enter a number between 1 - 4." << endl;
         return 1;
     }
 
