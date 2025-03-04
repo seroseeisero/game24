@@ -39,12 +39,17 @@ public:
 };
 
 int main() {
-    string really;
+    string ready;
     cout << " --  --*--ARE--*--  --" << endl;
     cout << " --  --*--YOU--*--  --  " << endl;
-    cout << "--- --*--REALLY--*-- ---    " << endl;
-    cout << "REALLY??? :";
-    cin >> really;
+    cout << "--- --*--READY--*-- ---    " << endl;
+    cout << "READY??? :";
+    cin >> ready;
+    
+    if (ready != "yes") {
+        cout << "Please type 'yes' to proceed." << endl;
+        return 1;
+    }
 
     int numPlayers;
     cout << "Enter number of players (1-4): ";
