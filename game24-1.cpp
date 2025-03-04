@@ -84,38 +84,35 @@ double applyOperation(double a, double b, char op) {
     return 0;
 }
 
-// Function to evaluate expression with parentheses
+// Function เช็คคำตอบกับวงเล็บ
 double evaluateExpression(const string& expression) {
     string expr = expression;
-    // Remove all spaces
+    // ลบช่องว่าง
     expr.erase(remove(expr.begin(), expr.end(), ' '), expr.end());
     
     stack<double> values;
     stack<char> ops;
 
     for (int i = 0; i < expr.length(); i++) {
-        // If current character is a whitespace, skip it
-        if (expr[i] == ' ')
-            continue;
+        if (expr[i] == ' ') //ถ้าเป็นช่องว่าง
+            continue; //ข้ามช่องว่าง
 
-        // If current character is a digit or decimal point, push it to values stack
+        //ถ้าเป็นอีกชระหรือทศยนิยม เก็บค่าใน stack 
         if (isdigit(expr[i]) || expr[i] == '.') {
-            string numStr;
-            // Get the entire number
+            string numStr; //เก็บตัวเลขหรือทศนิยม
             while (i < expr.length() && (isdigit(expr[i]) || expr[i] == '.'))
                 numStr += expr[i++];
             i--; // Move back one position
-            values.push(stod(numStr));
+            values.push(stod(numStr)); //เปลงเป็นdouble 
         }
-        // If current character is opening bracket, push to ops stack
         else if (expr[i] == '(') {
-            ops.push(expr[i]);
+            ops.push(expr[i]); //เจอ ( เก็บลง stack)
         }
         // If current character is closing bracket, solve the bracket
-        else if (expr[i] == ')') {
+        else if (expr[i] == ')') { //เจอ ) จะคำนวณก่อน
             while (!ops.empty() && ops.top() != '(') {
-                double val2 = values.top();
-                values.pop();
+                double val2 = values.top(); //ดึงค่ามาคำนวณ
+                values.pop(); //เอาค่าออก
                 
                 double val1 = values.top();
                 values.pop();
@@ -123,16 +120,16 @@ double evaluateExpression(const string& expression) {
                 char op = ops.top();
                 ops.pop();
                 
-                values.push(applyOperation(val1, val2, op));
+                values.push(applyOperation(val1, val2, op)); //คำนวณ เลขขจากoperator ,คืนค่า
             }
             
             if (!ops.empty())
-                ops.pop(); // Remove the opening bracket
+                ops.pop(); //ถ้ามีวงเล็บจะลบออกและทำต่อ
         }
         // If current character is an operator
         else if (isOperator(expr[i])) {
-            while (!ops.empty() && getPrecedence(ops.top()) >= getPrecedence(expr[i])) {
-                if (ops.top() == '(') break;
+            while (!ops.empty() && getPrecedence(ops.top()) >= getPrecedence(expr[i])) { //ทำจนเจอสแตกว่างหรือตัวที่สำคัญกว่า
+                if (ops.top() == '(') break; //เจอ ( หยุด
                 
                 double val2 = values.top();
                 values.pop();
@@ -150,8 +147,7 @@ double evaluateExpression(const string& expression) {
         }
     }
     
-    // Process remaining operators
-    while (!ops.empty()) {
+    while (!ops.empty()) { //เช็คจนจะว่าง
         double val2 = values.top();
         values.pop();
         
@@ -170,9 +166,9 @@ double evaluateExpression(const string& expression) {
 // Function to check if the expression evaluates to the target number
 bool checkSolution(const string& expression, double target) {
     try {
-        double result = evaluateExpression(expression);
-        return abs(result - target) < 1e-6;
-    } catch (...) {
+        double result = evaluateExpression(expression);// จะคำนวณค่าของนิพจน์ที่รับเข้ามา
+        return abs(result - target) < 1e-6; //เช็ว่าค่าใกล้กับค่าที่ต้องการโดยใช้ความคลาดเคลื่อนที่ยอมรับได้    
+    } catch (...) { //เช็คข้อผิดพลาด
         return false;
     }
 }
