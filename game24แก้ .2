@@ -5,10 +5,28 @@
 #include <cmath>
 #include <chrono>
 #include <conio.h>  // สำหรับ _kbhit() และ _getch()
+#include <sstream>   // สำหรับ stringstream เพื่อคำนวณสูตร
 
 using namespace std;
 
-// ประกาศฟังก์ชัน checkValidNumbers ก่อน
+// ฟังก์ชันคำนวณคำตอบจากสูตร
+double evaluateExpression(const string& expression) {
+    double result = 0;
+    stringstream ss(expression);
+    char op = '+';
+    double num;
+
+    while (ss >> num) {
+        if (op == '+') {
+            result += num;
+        } else if (op == '-') {
+            result -= num;
+        }
+        ss >> op;
+    }
+    return result;
+}
+
 bool checkValidNumbers(const string& expression, const vector<int>& componentNumbers) {
     string numStr;
     for (char c : expression) {
@@ -17,14 +35,16 @@ bool checkValidNumbers(const string& expression, const vector<int>& componentNum
         } else {
             if (!numStr.empty()) {
                 double num = stod(numStr);
+                // ตรวจสอบว่าตัวเลขอยู่ใน componentNumbers หรือไม่
                 if (find(componentNumbers.begin(), componentNumbers.end(), num) == componentNumbers.end()) {
-                    return false;
+                    return false;  // ถ้าไม่พบหมายความว่าเป็นคำตอบผิด
                 }
                 numStr.clear();
             }
         }
     }
 
+    // ตรวจสอบตัวเลขสุดท้าย
     if (!numStr.empty()) {
         double num = stod(numStr);
         if (find(componentNumbers.begin(), componentNumbers.end(), num) == componentNumbers.end()) {
@@ -35,34 +55,16 @@ bool checkValidNumbers(const string& expression, const vector<int>& componentNum
     return true;
 }
 
-// ประกาศฟังก์ชัน generateComponentNumbers ให้รองรับการรับตัวแปร vector
-void generateComponentNumbers(int targetNumber, vector<int>& componentNumbers) {
-    // ตัวอย่างการสร้าง componentNumbers โดยใช้ targetNumber
-    componentNumbers.push_back(1);  // เพียงแค่ตัวอย่าง
-    componentNumbers.push_back(6);
-    componentNumbers.push_back(9);
-    componentNumbers.push_back(11);
-}
-
-// ฟังก์ชันคำนวณคำตอบ (ยังไม่ทำการคำนวณจริงในตัวอย่างนี้)
-double evaluateExpression(const string& expression) {
-    // ใช้แค่ตัวอย่างการคำนวณ เช่น 13+14
-    if (expression == "13+14") {
-        return 27;
-    }
-    return 0;  // แค่ตัวอย่าง
-}
-
 bool checkSolution(const string& expression, double target, const vector<int>& componentNumbers) {
-    try {
-        double result = evaluateExpression(expression);
-        if (abs(result - target) < 1e-6 && checkValidNumbers(expression, componentNumbers)) {
-            return true;
-        }
-    } catch (...) {
-        return false;
+    if (!checkValidNumbers(expression, componentNumbers)) {
+        return false;  // ถ้าตรวจสอบแล้วพบว่าใช้ตัวเลขที่ไม่ถูกต้อง
     }
-    return false;
+
+    // คำนวณคำตอบจากการแสดงผลที่ผู้เล่นกรอก
+    double result = evaluateExpression(expression);
+
+    // ตรวจสอบว่า result ตรงกับ target หรือไม่
+    return abs(result - target) < 1e-6;
 }
 
 struct Player {
@@ -177,8 +179,7 @@ int main() {
     int initialNumber = 27;
     cout << "Initial Number: " << initialNumber << endl;
 
-    vector<int> componentNumbers;
-    generateComponentNumbers(initialNumber, componentNumbers);
+    vector<int> componentNumbers = {1, 6, 9, 11};
 
     // แสดง Component Numbers
     cout << "Component Numbers: ";
