@@ -1,1 +1,238 @@
+#include <iostream>
+#include <vector>
+#include <chrono>
+#include <thread>
+#include <conio.h>
+#include <algorithm>
+#include <random>
+#include <string>
+#include <cmath>
+#include <sstream>
+#include <stack>
+#include <limits>
+#include <set>
 
+using namespace std;
+
+// ✅ ประกาศ Prototype ฟังก์ชันที่จำเป็น
+int generateInitialNumber();
+vector<int> generateComponentNumbers(int targetNumber);
+bool checkSolution(const string& expression, double target);
+double evaluateExpression(const string& expression);
+bool validateNumbers(const string& expression, const vector<int>& components);
+
+//--------------- คลาสผู้เล่น ---------------------
+class Player {
+public:
+    string name;
+    double score;
+    float time;
+    bool correctAnswer;
+
+    Player(string playerName) {
+        name = playerName;
+        time = 0;
+        score = 0;
+        correctAnswer = false;
+    }
+};
+
+//--------------- คลาสเกม ---------------------
+class Game {
+public:
+    vector<Player> players;
+
+    Game(int numPlayers) {  
+        for (int i = 0; i < numPlayers; ++i) {
+            string playerName;
+            cout << "Enter name for Player " << (i + 1) << ": ";
+            cin >> playerName;
+            players.push_back(Player(playerName));
+        }
+    }
+
+    void startGame() {
+        cout << "\nGame Started!" << endl;
+    }
+};
+
+// ✅ ฟังก์ชันตรวจสอบเลขที่ใช้
+bool validateNumbers(const string& expression, const vector<int>& components) {
+    vector<int> usedNumbers;  
+    stringstream ss(expression);
+    string token;
+
+    // ดึงตัวเลขออกจากนิพจน์
+    while (getline(ss, token, ' ')) {
+        if (isdigit(token[0])) {  
+            usedNumbers.push_back(stoi(token)); 
+        }
+    }
+
+    // เช็คว่าผู้เล่นใช้เฉพาะเลขที่เกมให้มา
+    multiset<int> given(components.begin(), components.end());
+    multiset<int> used(usedNumbers.begin(), usedNumbers.end());
+
+    return given == used; 
+}
+
+// ✅ ฟังก์ชันสำหรับสุ่มเลขเป้าหมาย
+int generateInitialNumber() {
+    return rand() % 7 + 24; 
+}
+
+// ✅ ฟังก์ชันสำหรับสุ่มตัวเลของค์ประกอบ
+vector<int> generateComponentNumbers(int targetNumber) {
+    vector<int> components;
+    int sum = 0;
+    
+    for (int i = 0; i < 3; i++) {
+        int max_value = min(15, targetNumber - sum - 1);
+        if (max_value < 1) max_value = 1;
+        
+        int num = rand() % max_value + 1;
+        components.push_back(num);
+        sum += num;
+    }
+    
+    int lastNumber = targetNumber - sum;
+    if (lastNumber < 1 || lastNumber > 15) {
+        components.clear();
+        int first = min(15, targetNumber / 2);
+        components.push_back(first);
+        int second = min(15, abs(targetNumber - first));
+        components.push_back(second);
+        components.push_back(rand() % 5 + 1);
+        components.push_back(rand() % 5 + 1);
+    } else {
+        components.push_back(lastNumber);
+    }
+
+    random_device rd;
+    mt19937 g(rd());
+    shuffle(components.begin(), components.end(), g);
+
+    for (int num : components) {
+        cout << num << " ";
+    }
+    cout << endl;
+
+    return components;
+}
+
+// ✅ ฟังก์ชันเล่นเกม
+void playTimerGame(vector<Player> &players, int targetNumber, vector<int> componentNumbers) {
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');  
+
+    for (int i = 0; i < players.size(); i++) {
+        cout << "\n" << players[i].name << ", press Spacebar to start the timer..." << endl;
+
+        while (true) {
+            if (_kbhit() && _getch() == 32) {
+                break;
+            }
+        }
+
+        auto start = chrono::high_resolution_clock::now();
+        cout << "Timer started. Enter your answer: ";
+
+        string input;
+        getline(cin, input);
+
+        auto stop = chrono::high_resolution_clock::now();
+        auto elapsed = chrono::duration_cast<chrono::seconds>(stop - start).count();
+        players[i].time = elapsed;
+
+        if (!validateNumbers(input, componentNumbers)) {
+            cout << "!Invalid numbers used! You must use only: ";
+            for (int num : componentNumbers) cout << num << " ";
+            cout << endl;
+            players[i].correctAnswer = false;
+        } else {
+            players[i].correctAnswer = checkSolution(input, targetNumber);
+            if (players[i].correctAnswer) {
+                cout << "!Correct answer!" << endl;
+            } else {
+                cout << "!Wrong answer!" << endl;
+            }
+        }
+        cout << "Elapsed time: " << players[i].time << " sec.\n";
+    }
+}
+
+// ✅ ฟังก์ชันตรวจสอบคำตอบ
+bool checkSolution(const string& expression, double target) {
+    try {
+        double result = evaluateExpression(expression);
+        return abs(result - target) < 1e-6;    
+    } catch (...) {
+        return false;
+    }
+}
+
+// ✅ ฟังก์ชันคำนวณนิพจน์
+double evaluateExpression(const string& expression) {
+    string expr = expression;
+    expr.erase(remove(expr.begin(), expr.end(), ' '), expr.end());
+
+    stack<double> values;
+    stack<char> ops;
+
+    for (int i = 0; i < expr.length(); i++) {
+        if (isdigit(expr[i]) || expr[i] == '.') {
+            string numStr;
+            while (i < expr.length() && (isdigit(expr[i]) || expr[i] == '.'))
+                numStr += expr[i++];
+            i--;
+            values.push(stod(numStr));
+        } else if (expr[i] == '(') {
+            ops.push(expr[i]);
+        } else if (expr[i] == ')') {
+            while (!ops.empty() && ops.top() != '(') {
+                double val2 = values.top(); values.pop();
+                double val1 = values.top(); values.pop();
+                char op = ops.top(); ops.pop();
+                values.push(op == '+' ? val1 + val2 : op == '-' ? val1 - val2 : op == '*' ? val1 * val2 : val2 != 0 ? val1 / val2 : 0);
+            }
+            if (!ops.empty()) ops.pop();
+        } else if (string("+-*/").find(expr[i]) != string::npos) {
+            while (!ops.empty() && string("+-*/").find(ops.top()) != string::npos) {
+                double val2 = values.top(); values.pop();
+                double val1 = values.top(); values.pop();
+                char op = ops.top(); ops.pop();
+                values.push(op == '+' ? val1 + val2 : op == '-' ? val1 - val2 : op == '*' ? val1 * val2 : val2 != 0 ? val1 / val2 : 0);
+            }
+            ops.push(expr[i]);
+        }
+    }
+    
+    while (!ops.empty()) {
+        double val2 = values.top(); values.pop();
+        double val1 = values.top(); values.pop();
+        char op = ops.top(); ops.pop();
+        values.push(op == '+' ? val1 + val2 : op == '-' ? val1 - val2 : op == '*' ? val1 * val2 : val2 != 0 ? val1 / val2 : 0);
+    }
+    
+    return values.top();
+}
+
+// ✅ main()
+int main() {
+    srand(time(0));
+
+    int numPlayers;
+    cout << "Enter number of players (1-4): ";
+    cin >> numPlayers;
+
+    Game game(numPlayers);
+    game.startGame();
+
+    int initialNumber = generateInitialNumber();
+    cout << "Initial Number: " << initialNumber << endl;
+    cout << "Component Numbers: ";
+    vector<int> componentNumbers = generateComponentNumbers(initialNumber);
+
+    playTimerGame(game.players, initialNumber, componentNumbers);
+
+    return 0;
+}
