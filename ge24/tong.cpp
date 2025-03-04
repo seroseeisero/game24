@@ -1,5 +1,5 @@
 #include <iostream>
-#include <cstdlib>
+#include <cstdlib> //srand rand
 #include <vector>
 #include <algorithm>
 #include <random>  // เพิ่มมาสำหรับ std::shuffle
