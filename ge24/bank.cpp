@@ -12,11 +12,11 @@ int main() {
     int players;
     const int maxTime = 120;
 
-    cout << "Enter number of players (2-4): ";
+    cout << "Enter number of players (1-4): ";
     cin >> players;
 
-    if (players < 2 || players > 4) {
-        cout << "Invalid number of players. Please enter a number between 2 and 4." << endl;
+    if (players < 1 || players > 4) {
+        cout << "Invalid number of players. Please enter a number between 1 and 4." << endl;
         return 1;
     }
 
