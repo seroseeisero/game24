@@ -1,8 +1,8 @@
-#include <iostream>
-#include <chrono>
-#include <thread>
-#include <conio.h>
-#include <vector>
+#include <iostream>  //ใช้สำหรับรับ-ส่งข้อมูลกับผู้ใช้
+#include <chrono> //ใช้สำหรับจับเวลา
+#include <thread> // ใช้สำหรับหน่วงเวลา (แต่ในโค้ดนี้ยังไม่ได้ใช้)
+#include <conio.h> //ใช้ _kbhit() และ _getch() เพื่อตรวจจับการกดปุ่ม
+#include <vector> // ใช้ vector<> สำหรับเก็บชื่อผู้เล่นและเวลาที่ใช้
 
 using namespace std;
 using namespace chrono;
