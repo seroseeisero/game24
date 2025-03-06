@@ -1,0 +1,387 @@
+#include <iostream>
+#include <vector>
+#include <chrono>
+#include <thread>
+#include <conio.h>
+#include <algorithm>
+#include <random>
+#include <string>
+#include <cmath>
+#include <sstream>
+#include <stack>
+#include <limits>
+
+using namespace std;
+
+// ✅ ประกาศ Prototype ฟังก์ชันที่จำเป็น
+int generateInitialNumber();  // สุ่มเลขเริ่มต้น
+vector<int> generateComponentNumbers(int targetNumber);  // สร้างเลขตัวประกอบเพื่อให้ได้เลขเป้าหมาย
+bool checkSolution(const string& expression, double target, const vector<int>& componentNumbers);  // ตรวจสอบคำตอบที่ถูกต้อง
+double evaluateExpression(const string& expression);  // คำนวณค่าของนิพจน์ทางคณิตศาสตร์
+vector<double> extractNumbers(const string& expression);  // ดึงตัวเลขจากนิพจน์
+bool verifyUsedNumbers(const vector<double>& usedNumbers, const vector<int>& componentNumbers);  // ตรวจสอบตัวเลขที่ใช้ในนิพจน์
+
+//--------------- คลาสผู้เล่น ---------------------
+// คลาสสำหรับเก็บข้อมูลของผู้เล่น
+class Player {
+public:
+    string name;   // ชื่อผู้เล่น
+    double number; // เลขของผู้เล่น (ถ้าจำเป็น)
+    double score;  // คะแนนของผู้เล่น
+    float time;    // เวลาที่ใช้ในการตอบคำถาม
+    bool correctAnswer;  // ใช้บันทึกว่าผู้เล่นตอบถูกหรือไม่
+
+    // Constructor สำหรับสร้างผู้เล่นใหม่
+    Player(string playerName) {
+        name = playerName;
+        time = 0;
+        score = 0;
+        correctAnswer = false;
+    }
+
+    // ฟังก์ชันสำหรับแสดงข้อมูลผู้เล่น
+    void displayInfo() {
+        cout << "Player: " << name << ", Time: " << time << endl;
+    }
+};
+
+//--------------- คลาสเกม ---------------------
+// คลาสสำหรับการจัดการเกม
+class Game {
+public:
+    vector<Player> players;  // รายชื่อผู้เล่น
+
+    // Constructor สำหรับสร้างเกมใหม่
+    Game(int numPlayers) {  
+        for (int i = 0; i < numPlayers; ++i) {
+            string playerName;
+            cout << "Enter name for Player " << (i + 1) << ": ";
+            cin >> playerName;
+            players.push_back(Player(playerName));  // เพิ่มผู้เล่นลงในเกม
+        }
+    }
+
+    // ฟังก์ชันเริ่มเกม
+    void startGame() {
+        cout << "\nGame Started!" << endl;
+    }
+};
+
+// ฟังก์ชันสำหรับเช็คว่าเป็นเครื่องหมายคณิตศาสตร์ (เช่น +, -, *, /) หรือไม่
+bool isOperator(char c) {
+    return (c == '+' || c == '-' || c == '*' || c == '/');
+}
+
+// ฟังก์ชันหาความสำคัญของตัวดำเนินการ
+int getPrecedence(char op) {
+    if (op == '+' || op == '-')
+        return 1;
+    if (op == '*' || op == '/')
+        return 2;
+    return 0;
+}
+
+// ฟังก์ชันคำนวณผลลัพธ์จากตัวเลขและตัวดำเนินการ
+double applyOperation(double a, double b, char op) {
+    switch (op) {
+        case '+': return a + b;
+        case '-': return a - b;
+        case '*': return a * b;
+        case '/': return b != 0 ? a / b : 0; // ป้องกันการหารด้วย 0
+    }
+    return 0;
+}
+
+// ฟังก์ชันคำนวณค่าของนิพจน์ทางคณิตศาสตร์
+double evaluateExpression(const string& expression) {
+    string expr = expression;
+    expr.erase(remove(expr.begin(), expr.end(), ' '), expr.end());  // ลบช่องว่าง
+
+    stack<double> values;  // stack สำหรับเก็บค่าตัวเลข
+    stack<char> ops;  // stack สำหรับเก็บตัวดำเนินการ
+
+    for (int i = 0; i < expr.length(); i++) {
+        if (expr[i] == ' ') continue;  // ข้ามช่องว่าง
+
+        // ถ้าเจอตัวเลขหรือทศนิยม
+        if (isdigit(expr[i]) || expr[i] == '.') {
+            string numStr;
+            while (i < expr.length() && (isdigit(expr[i]) || expr[i] == '.'))
+                numStr += expr[i++];  // อ่านตัวเลขจนกว่าจะเจออักขระอื่น
+            i--;  // ย้อนกลับหนึ่งตำแหน่ง
+            values.push(stod(numStr));  // แปลงเป็น double และเก็บใน stack
+        }
+        // ถ้าเจอวงเล็บเปิด
+        else if (expr[i] == '(') {
+            ops.push(expr[i]);  // เก็บวงเล็บเปิด
+        }
+        // ถ้าเจอวงเล็บปิด
+        else if (expr[i] == ')') {
+            while (!ops.empty() && ops.top() != '(') {  // คำนวณจนเจอวงเล็บเปิด
+                double val2 = values.top(); values.pop();
+                double val1 = values.top(); values.pop();
+                char op = ops.top(); ops.pop();
+                values.push(applyOperation(val1, val2, op));  // คำนวณและเก็บผลลัพธ์
+            }
+            if (!ops.empty())
+                ops.pop();  // ลบวงเล็บเปิดออก
+        }
+        // ถ้าเจอตัวดำเนินการ
+        else if (isOperator(expr[i])) {
+            while (!ops.empty() && getPrecedence(ops.top()) >= getPrecedence(expr[i])) {  // ถ้ามีตัวดำเนินการที่มีความสำคัญมากกว่า
+                if (ops.top() == '(') break;  // หยุดเมื่อเจอวงเล็บเปิด
+
+                double val2 = values.top(); values.pop();
+                double val1 = values.top(); values.pop();
+                char op = ops.top(); ops.pop();
+                values.push(applyOperation(val1, val2, op));  // คำนวณและเก็บผลลัพธ์
+            }
+            ops.push(expr[i]);  // เก็บตัวดำเนินการ
+        }
+    }
+
+    // คำนวณผลลัพธ์จนหมด
+    while (!ops.empty()) {
+        double val2 = values.top(); values.pop();
+        double val1 = values.top(); values.pop();
+        char op = ops.top(); ops.pop();
+        values.push(applyOperation(val1, val2, op));  // คำนวณและเก็บผลลัพธ์
+    }
+
+    return values.top();  // คืนค่าผลลัพธ์สุดท้าย
+}
+
+// ฟังก์ชันสำหรับดึงตัวเลขจากนิพจน์
+vector<double> extractNumbers(const string& expression) {
+    vector<double> numbers;
+    string numStr;
+
+    for (size_t i = 0; i < expression.length(); i++) {
+        if (isdigit(expression[i]) || expression[i] == '.') {
+            numStr += expression[i];  // เก็บตัวเลข
+        } else if (!numStr.empty()) {
+            numbers.push_back(stod(numStr));  // แปลงเป็นตัวเลขแล้วเก็บ
+            numStr.clear();
+        }
+    }
+    if (!numStr.empty()) {
+        numbers.push_back(stod(numStr));  // เก็บตัวเลขสุดท้าย
+    }
+    return numbers;
+}
+
+// ฟังก์ชันตรวจสอบตัวเลขที่ใช้ในนิพจน์ว่าเป็นตัวเลขที่มาจากตัวประกอบ
+bool verifyUsedNumbers(const vector<double>& usedNumbers, const vector<int>& componentNumbers) {
+    vector<int> tempComponents = componentNumbers;
+
+    for (double num : usedNumbers) {
+        // ตรวจสอบว่าตัวเลขเป็นจำนวนเต็มหรือไม่
+        if (floor(num) != num) {
+            return false;  // ถ้าเป็นทศนิยมไม่อนุญาต
+        }
+
+        // หาตำแหน่งตัวเลขในตัวประกอบ
+        auto it = find(tempComponents.begin(), tempComponents.end(), (int)num);
+        if (it == tempComponents.end()) {
+            return false;  // ถ้าหาไม่เจอในตัวประกอบ
+        }
+        tempComponents.erase(it);  // ลบตัวเลขที่ใช้แล้ว
+    }
+
+    return true;  // ถ้าทุกตัวเลขถูกต้อง
+}
+
+// ฟังก์ชันตรวจสอบว่าคำตอบที่ผู้เล่นป้อนถูกต้องหรือไม่
+bool checkSolution(const string& expression, double target, const vector<int>& componentNumbers) {
+    try {
+        vector<double> usedNumbers = extractNumbers(expression);  // ดึงตัวเลขจากนิพจน์
+        if (!verifyUsedNumbers(usedNumbers, componentNumbers)) {  // ตรวจสอบตัวเลขที่ใช้
+            cout << "Invalid numbers used! Only use the provided component numbers." << endl;
+            return false;
+        }
+
+        double result = evaluateExpression(expression);  // คำนวณนิพจน์
+        return abs(result - target) < 1e-6;  // ตรวจสอบผลลัพธ์ใกล้เคียงกับเป้าหมาย
+    } catch (...) {
+        return false;  // ถ้ามีข้อผิดพลาดเกิดขึ้น
+    }
+}
+
+// ฟังก์ชันเล่นเกมที่มีการจับเวลา
+void playTimerGame(vector<Player> &players, int targetNumber, const vector<int>& componentNumbers) {
+    const int maxTime = 120;  // เวลาสูงสุดสำหรับเกม
+
+    // เคลียร์ buffer ก่อนเริ่ม
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+    for (int i = 0; i < players.size(); i++) {
+        cout << "\n" << players[i].name << ", press Spacebar to start the timer..." << endl;
+
+        while (true) {
+            if (_kbhit() && _getch() == 32) {  // รอให้ผู้เล่นกด Spacebar
+                break;
+            }
+        }
+
+        auto start = chrono::high_resolution_clock::now();  // เริ่มจับเวลา
+        cout << "Timer started. Enter your answer (e.g., 5+1+6+15 or (5+1)*(6-2)): ";
+
+        string input;
+        getline(cin, input);  // รับคำตอบจากผู้เล่น
+
+        auto stop = chrono::high_resolution_clock::now();
+        auto elapsed = chrono::duration_cast<chrono::seconds>(stop - start).count();
+        players[i].time = elapsed;  // บันทึกเวลา
+
+        players[i].correctAnswer = checkSolution(input, targetNumber, componentNumbers);  // ตรวจสอบคำตอบ
+        cout << "Time recorded for " << players[i].name << ": " << players[i].time << " sec.\n";
+    }
+
+    // แสดงผลลัพธ์หลังเกมจบ
+    cout << "\n=== Results ===\n";
+    for (const auto& player : players) {
+        cout << player.name << ": " << (player.correctAnswer ? "Correct!" : "Wrong!") << endl;
+    }
+
+    // แยกผู้เล่นที่ตอบถูกและผิด
+    vector<Player> correctPlayers;
+    vector<Player> wrongPlayers;
+    
+    for (const auto& player : players) {
+        if (player.correctAnswer) {
+            correctPlayers.push_back(player);
+        } else {
+            wrongPlayers.push_back(player);
+        }
+    }
+
+    // เรียงลำดับผู้เล่นที่ตอบถูกตามเวลา
+    sort(correctPlayers.begin(), correctPlayers.end(), [](const Player &a, const Player &b) {
+        return a.time < b.time;
+    });
+
+    // เรียงลำดับผู้เล่นที่ตอบผิดตามเวลา
+    sort(wrongPlayers.begin(), wrongPlayers.end(), [](const Player &a, const Player &b) {
+        return a.time < b.time;
+    });
+
+    // รวมผู้เล่นที่ตอบถูกและผิด
+    vector<Player> rankedPlayers;
+    rankedPlayers.insert(rankedPlayers.end(), correctPlayers.begin(), correctPlayers.end());
+    rankedPlayers.insert(rankedPlayers.end(), wrongPlayers.begin(), wrongPlayers.end());
+
+    cout << "\n=== Ranking of players ===\n";
+    for (int i = 0; i < rankedPlayers.size(); i++) {
+        cout << "Rank " << i + 1 << ": " << rankedPlayers[i].name << " - " << rankedPlayers[i].time << " sec";
+        if (!rankedPlayers[i].correctAnswer) {
+            cout << " (Wrong answer)";
+        }
+        cout << endl;
+    }
+
+    // ประกาศผู้ชนะ
+    if (!correctPlayers.empty()) {
+        cout << "\nWinner is: " << correctPlayers[0].name << " with " << correctPlayers[0].time << " sec!" << endl;
+    } else {
+        cout << "\nNo winner - all players gave incorrect answers!" << endl;
+    }
+}
+
+// ฟังก์ชันสุ่มตัวเลขเริ่มต้น
+int generateInitialNumber() {
+    return rand() % 7 + 24;  // สุ่มเลขระหว่าง 24 ถึง 30
+}
+
+// ฟังก์ชันสร้างตัวเลขของค์ประกอบที่คำนวณได้ผลลัพธ์ตามเป้าหมาย
+vector<int> generateComponentNumbers(int targetNumber) {
+    vector<int> components;  // เวกเตอร์เก็บตัวเลขที่ใช้
+    int sum = 0;  // ผลบวกของตัวเลข
+
+    // สร้างตัวเลข 3 ตัวแรกที่รวมแล้วไม่เกินเป้าหมาย
+    for (int i = 0; i < 3; i++) {
+        int max_value = min(15, targetNumber - sum - 1);  // คำนวณค่าตัวเลขสุ่ม
+        if (max_value < 1) max_value = 1;  // ป้องกันค่าต่ำเกินไป
+        
+        int num = rand() % max_value + 1;  // สุ่มตัวเลข
+        components.push_back(num);  // เพิ่มตัวเลข
+        sum += num;  // บวกผลลัพธ์
+    }
+    
+    // คำนวณตัวเลขที่ 4 ที่สามารถบรรลุเป้าหมาย
+    int lastNumber = targetNumber - sum;  // คำนวณตัวเลขสุดท้าย
+    
+    // ตรวจสอบว่าอยู่ในช่วงที่เหมาะสมหรือไม่
+    if (lastNumber < 1 || lastNumber > 15) {
+        components.clear();  // ล้างตัวเลขเดิม
+
+        // เลือกตัวเลขใกล้เคียงกับเป้าหมาย
+        int first = min(15, targetNumber / 2);
+        components.push_back(first);
+        
+        int second = min(15, abs(targetNumber - first));
+        components.push_back(second);
+
+        components.push_back(rand() % 5 + 1);
+        components.push_back(rand() % 5 + 1);
+    } else {
+        components.push_back(lastNumber);  // ถ้าคำนวณแล้วได้ตัวเลขที่ถูกต้อง
+    }
+
+    // สลับตำแหน่งตัวเลขเพื่อไม่ให้เดาได้ง่าย
+    random_device rd; // สร้างตัวสร้างเลขสุ่มจากฮาร์ดแวร์
+    mt19937 g(rd()); //mtเป็นเครื่องมือที่มีความเร็วในการสุ่มสูง และกระจายตัวดี  g(rd()) คือ generateสุ่มเลขที่ไม่มีความซ้ำซากในแต่ละรอบที่รัน
+    shuffle(components.begin(), components.end(), g);
+
+    cout << "Available numbers: ";
+    for (int num : components) {
+        cout << num << " ";
+    }
+    cout << endl;
+
+    return components;
+}
+
+// ฟังก์ชันหลักเริ่มเกม
+int main() {
+    srand(time(0));  // ตั้งค่า seed สำหรับการสุ่ม
+
+    // แสดงข้อความต้อนรับ
+    cout << "\n--  --*--ARE--*--  --" << endl;
+    cout << " --  --*--YOU--*--  --" << endl;
+    cout << "--- --*--READY--*-- ---" << endl;
+
+    string ready;
+    cout << "READY??? :";
+    cin >> ready;
+
+    // ตรวจสอบว่าผู้ใช้พิมพ์ "yes"
+    if (ready != "yes") {
+        cout << "Please type 'yes' to proceed." << endl;
+        return 1;
+    }
+
+    int numPlayers;
+    cout << "Enter number of players (1-4): ";
+    cin >> numPlayers;
+
+    // ตรวจสอบจำนวนผู้เล่น
+    if (numPlayers < 1 || numPlayers > 4) {
+        cout << "Invalid number of players. Please enter a number between 1 and 4." << endl;
+        return 1;
+    }
+
+    // สร้างเกมใหม่และเริ่มเกม
+    Game game(numPlayers);
+    game.startGame();
+
+    // สร้างเลขเริ่มต้นและตัวเลขประกอบ
+    int initialNumber = generateInitialNumber();
+    cout << "Initial Number: " << initialNumber << endl;
+    cout << "Component Numbers: ";
+    vector<int> components = generateComponentNumbers(initialNumber);
+
+    // เล่นเกมที่มีการจับเวลา
+    playTimerGame(game.players, initialNumber, components);
+
+    return 0;
+}
